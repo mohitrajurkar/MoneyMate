@@ -42,7 +42,8 @@ services:
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       HIBERNATE_DDL_AUTO: ${HIBERNATE_DDL_AUTO:-update}
-      JWT_SECRET: ${JWT_SECRET:-moneymate_super_secure_jwt_secret_key_2026_finance_app_key_32_bytes}
+      DATABASE_URL: ${DATABASE_URL:-}
+      JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost,http://localhost:80,http://localhost:3000,http://localhost:5173}
