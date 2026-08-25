@@ -1,0 +1,549 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+:root,
+.theme-dark {
+  /* Dark Mode Palette */
+  --app-bg-default: #0d1117;
+  --app-bg-subtle: #161b22;
+  --app-bg-surface: #161b22;
+  --app-bg-inset: #010409;
+  --app-bg-overlay: #1c2128;
+  --app-bg-card: #0d1117;
+  --app-bg-card-header: #161b22;
+  --app-bg-input: #161b22;
+
+  --app-border-default: #30363d;
+  --app-border-muted: #21262d;
+  --app-border-subtle: rgba(240, 246, 252, 0.1);
+
+  --app-text-primary: #f0f6fc;
+  --app-text-secondary: #8b949e;
+  --app-text-muted: #6e7681;
+
+  --app-accent-blue: #3b82f6;
+  --app-accent-blue-subtle: rgba(59, 130, 246, 0.15);
+  --app-accent-green: #238636;
+  --app-accent-green-hover: #2ea043;
+  --app-accent-green-text: #3fb950;
+  --app-accent-purple: #818cf8;
+  --app-accent-orange: #d29922;
+  --app-accent-red: #f85149;
+
+  --app-btn-bg: #21262d;
+  --app-btn-hover: #30363d;
+  --app-btn-border: #363b42;
+
+  /* MoneyMate Brand Logo Colors */
+  --mm-blue-deep: #1e3a8a;
+  --mm-blue-royal: #1d4ed8;
+  --mm-blue-electric: #2563eb;
+  --mm-blue-light: #60a5fa;
+  --mm-periwinkle: #818cf8;
+  --mm-blue-glow: rgba(37, 99, 235, 0.25);
+  --mm-card-glow: 0 0 25px -5px rgba(29, 78, 216, 0.2);
+
+  /* Backward Compatibility Aliases */
+  --gh-bg-default: var(--app-bg-default);
+  --gh-bg-subtle: var(--app-bg-subtle);
+  --gh-bg-inset: var(--app-bg-inset);
+  --gh-bg-overlay: var(--app-bg-overlay);
+  --gh-border-default: var(--app-border-default);
+  --gh-border-muted: var(--app-border-muted);
+  --gh-border-subtle: var(--app-border-subtle);
+  --gh-text-primary: var(--app-text-primary);
+  --gh-text-secondary: var(--app-text-secondary);
+  --gh-text-muted: var(--app-text-muted);
+  --gh-accent-blue: var(--app-accent-blue);
+  --gh-accent-blue-subtle: var(--app-accent-blue-subtle);
+  --gh-accent-green: var(--app-accent-green);
+  --gh-accent-green-hover: var(--app-accent-green-hover);
+  --gh-accent-green-text: var(--app-accent-green-text);
+  --gh-accent-purple: var(--app-accent-purple);
+  --gh-accent-orange: var(--app-accent-orange);
+  --gh-accent-red: var(--app-accent-red);
+  --gh-btn-bg: var(--app-btn-bg);
+  --gh-btn-hover: var(--app-btn-hover);
+  --gh-btn-border: var(--app-btn-border);
+}
+
+.theme-light {
+  /* Crisp, High-Contrast Light Mode Palette */
+  --app-bg-default: #f8fafc;
+  --app-bg-subtle: #ffffff;
+  --app-bg-surface: #ffffff;
+  --app-bg-inset: #f1f5f9;
+  --app-bg-overlay: #ffffff;
+  --app-bg-card: #ffffff;
+  --app-bg-card-header: #f8fafc;
+  --app-bg-input: #ffffff;
+
+  --app-border-default: #e2e8f0;
+  --app-border-muted: #cbd5e1;
+  --app-border-subtle: rgba(15, 23, 42, 0.08);
+
+  --app-text-primary: #0f172a;
+  --app-text-secondary: #475569;
+  --app-text-muted: #64748b;
+
+  --app-accent-blue: #1d4ed8;
+  --app-accent-blue-subtle: #eff6ff;
+  --app-accent-green: #16a34a;
+  --app-accent-green-hover: #15803d;
+  --app-accent-green-text: #16a34a;
+  --app-accent-purple: #6366f1;
+  --app-accent-orange: #d97706;
+  --app-accent-red: #dc2626;
+
+  --app-btn-bg: #f1f5f9;
+  --app-btn-hover: #e2e8f0;
+  --app-btn-border: #cbd5e1;
+
+  /* MoneyMate Brand Logo Colors */
+  --mm-blue-deep: #1e3a8a;
+  --mm-blue-royal: #1d4ed8;
+  --mm-blue-electric: #2563eb;
+  --mm-blue-light: #3b82f6;
+  --mm-periwinkle: #6366f1;
+  --mm-blue-glow: rgba(37, 99, 235, 0.15);
+  --mm-card-glow: 0 4px 20px -2px rgba(37, 99, 235, 0.12);
+
+  /* Backward Compatibility Aliases */
+  --gh-bg-default: var(--app-bg-default);
+  --gh-bg-subtle: var(--app-bg-subtle);
+  --gh-bg-inset: var(--app-bg-inset);
+  --gh-bg-overlay: var(--app-bg-overlay);
+  --gh-border-default: var(--app-border-default);
+  --gh-border-muted: var(--app-border-muted);
+  --gh-border-subtle: var(--app-border-subtle);
+  --gh-text-primary: var(--app-text-primary);
+  --gh-text-secondary: var(--app-text-secondary);
+  --gh-text-muted: var(--app-text-muted);
+  --gh-accent-blue: var(--app-accent-blue);
+  --gh-accent-blue-subtle: var(--app-accent-blue-subtle);
+  --gh-accent-green: var(--app-accent-green);
+  --gh-accent-green-hover: var(--app-accent-green-hover);
+  --gh-accent-green-text: var(--app-accent-green-text);
+  --gh-accent-purple: var(--app-accent-purple);
+  --gh-accent-orange: var(--app-accent-orange);
+  --gh-accent-red: var(--app-accent-red);
+  --gh-btn-bg: var(--app-btn-bg);
+  --gh-btn-hover: var(--app-btn-hover);
+  --gh-btn-border: var(--app-btn-border);
+}
+
+body {
+  background-color: var(--app-bg-default);
+  color: var(--app-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* MoneyMate Signature Brand Logo Effects */
+.mm-brand-gradient {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 50%, #2563eb 100%);
+}
+
+.mm-brand-glow {
+  box-shadow: 0 0 25px -4px rgba(37, 99, 235, 0.35);
+}
+
+.mm-brand-border {
+  border-color: rgba(96, 165, 250, 0.3);
+}
+
+.mm-periwinkle-pill {
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(129, 140, 248, 0.3);
+  color: #818cf8;
+}
+
+/* GitHub-Style UI Utility Classes */
+.gh-card {
+  background-color: var(--app-bg-card);
+  border: 1px solid var(--app-border-default);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: border-color 0.15s ease-in-out;
+}
+
+.gh-card-header {
+  background-color: var(--app-bg-card-header);
+  border-bottom: 1px solid var(--app-border-default);
+  padding: 12px 16px;
+}
+
+.gh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+  border-radius: 6px;
+  border: 1px solid var(--app-btn-border);
+  background-color: var(--app-btn-bg);
+  color: var(--app-text-primary);
+  cursor: pointer;
+  transition: 0.15s cubic-bezier(0.3, 0, 0.5, 1);
+  user-select: none;
+}
+
+.gh-btn:hover {
+  background-color: var(--app-btn-hover);
+  border-color: var(--app-border-default);
+}
+
+.gh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.gh-btn-primary {
+  background-color: #1d4ed8;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.gh-btn-primary:hover {
+  background-color: #1e40af;
+  border-color: #3b82f6;
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.4);
+}
+
+.gh-btn-success {
+  background-color: var(--app-accent-green);
+  border-color: var(--app-accent-green-hover);
+  color: #ffffff;
+}
+
+.gh-btn-success:hover {
+  background-color: var(--app-accent-green-hover);
+}
+
+.gh-btn-danger {
+  color: var(--app-accent-red);
+}
+
+.gh-btn-danger:hover {
+  background-color: var(--app-accent-red);
+  border-color: var(--app-accent-red);
+  color: #ffffff;
+}
+
+.gh-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 7px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 18px;
+  border-radius: 2em;
+  border: 1px solid transparent;
+}
+
+.gh-badge-blue {
+  background-color: var(--app-accent-blue-subtle);
+  color: var(--app-accent-blue);
+  border-color: rgba(56, 139, 253, 0.4);
+}
+
+.gh-badge-green {
+  background-color: rgba(46, 160, 67, 0.15);
+  color: var(--app-accent-green-text);
+  border-color: rgba(46, 160, 67, 0.4);
+}
+
+.gh-badge-purple {
+  background-color: rgba(163, 113, 247, 0.15);
+  color: var(--app-accent-purple);
+  border-color: rgba(163, 113, 247, 0.4);
+}
+
+.gh-badge-orange {
+  background-color: rgba(210, 153, 34, 0.15);
+  color: var(--app-accent-orange);
+  border-color: rgba(210, 153, 34, 0.4);
+}
+
+.gh-badge-red {
+  background-color: rgba(248, 81, 73, 0.15);
+  color: var(--app-accent-red);
+  border-color: rgba(248, 81, 73, 0.4);
+}
+
+.gh-badge-muted {
+  background-color: var(--app-border-muted);
+  color: var(--app-text-secondary);
+  border-color: var(--app-border-default);
+}
+
+.gh-input {
+  background-color: var(--app-bg-input);
+  border: 1px solid var(--app-border-default);
+  border-radius: 6px;
+  color: var(--app-text-primary);
+  font-size: 13px;
+  padding: 5px 12px;
+  width: 100%;
+  transition: 80ms cubic-bezier(0.3, 0, 0.5, 1);
+}
+
+.gh-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+}
+
+/* Light Theme Overrides */
+.theme-light .bg-\[\#0d1117\] {
+  background-color: #f8fafc !important;
+}
+
+.theme-light .bg-\[\#161b22\] {
+  background-color: #ffffff !important;
+}
+
+.theme-light .bg-\[\#010409\] {
+  background-color: #f1f5f9 !important;
+}
+
+.theme-light .bg-\[\#21262d\] {
+  background-color: #f1f5f9 !important;
+}
+
+.theme-light .border-\[\#30363d\],
+.theme-light .border-\[\#21262d\],
+.theme-light .border-\[\#363b42\] {
+  border-color: #e2e8f0 !important;
+}
+
+.theme-light .text-\[\#f0f6fc\] {
+  color: #0f172a !important;
+}
+
+.theme-light .text-\[\#c9d1d9\] {
+  color: #334155 !important;
+}
+
+.theme-light .text-\[\#8b949e\] {
+  color: #64748b !important;
+}
+
+.theme-light .text-\[\#6e7681\] {
+  color: #94a3b8 !important;
+}
+
+.theme-light #desktop-sidebar {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+.theme-light #main-top-header {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.theme-light #mobile-bottom-nav {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #e2e8f0 !important;
+}
+
+.theme-light #streak-modal-dialog {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.theme-light #streak-modal-dialog .bg-\[\#0d1117\] {
+  background-color: #f8fafc !important;
+}
+
+.theme-light #streak-modal-dialog .bg-\[\#161b22\] {
+  background-color: #ffffff !important;
+}
+
+.theme-light #streak-modal-dialog .border-\[\#30363d\],
+.theme-light #streak-modal-dialog .border-\[\#21262d\] {
+  border-color: #e2e8f0 !important;
+}
+
+.theme-light #day-transactions-modal-dialog {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.theme-light #day-transactions-modal-dialog .bg-\[\#0d1117\] {
+  background-color: #f8fafc !important;
+}
+
+.theme-light #day-transactions-modal-dialog .bg-\[\#161b22\] {
+  background-color: #ffffff !important;
+}
+
+.theme-light #day-transactions-modal-dialog .border-\[\#30363d\],
+.theme-light #day-transactions-modal-dialog .border-\[\#21262d\] {
+  border-color: #e2e8f0 !important;
+}
+
+.theme-light #dashboard-cashflow-chart-card {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.theme-light #dashboard-cashflow-chart-card .bg-\[\#161b22\] {
+  background-color: #f8fafc !important;
+}
+
+.theme-light #dashboard-cashflow-chart-card .border-\[\#30363d\],
+.theme-light #dashboard-cashflow-chart-card .border-\[\#21262d\] {
+  border-color: #e2e8f0 !important;
+}
+
+.theme-light #github-activity-heatmap-card {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.theme-light #github-activity-heatmap-card .bg-\[\#21262d\] {
+  background-color: #f1f5f9 !important;
+}
+
+.theme-light #github-activity-heatmap-card .border-\[\#21262d\],
+.theme-light #github-activity-heatmap-card .border-\[\#30363d\] {
+  border-color: #e2e8f0 !important;
+}
+
+/* GitHub Heatmap Grid Cell Styles */
+.gh-heatmap-cell {
+  width: 11px;
+  height: 11px;
+  min-width: 11px;
+  min-height: 11px;
+  border-radius: 2px;
+  display: inline-block;
+  box-sizing: border-box;
+}
+
+/* Dark Theme Heatmap Levels */
+.gh-cell-0 {
+  background-color: #161b22;
+  border: 1px solid #21262d;
+}
+
+.gh-cell-1 {
+  background-color: #0e4429;
+  border: 1px solid #006d32;
+}
+
+.gh-cell-2 {
+  background-color: #006d32;
+  border: 1px solid #26a641;
+}
+
+.gh-cell-3 {
+  background-color: #26a641;
+  border: 1px solid #39d353;
+}
+
+.gh-cell-4 {
+  background-color: #39d353;
+  border: 1px solid #56d364;
+  box-shadow: 0 0 6px rgba(57, 211, 83, 0.4);
+}
+
+/* Light Theme Heatmap Levels */
+.theme-light .gh-cell-0 {
+  background-color: #ebedf0 !important;
+  border: 1px solid #d0d7de !important;
+}
+
+.theme-light .gh-cell-1 {
+  background-color: #9be9a8 !important;
+  border: 1px solid #40c463 !important;
+}
+
+.theme-light .gh-cell-2 {
+  background-color: #40c463 !important;
+  border: 1px solid #30a14e !important;
+}
+
+.theme-light .gh-cell-3 {
+  background-color: #30a14e !important;
+  border: 1px solid #216e39 !important;
+}
+
+.theme-light .gh-cell-4 {
+  background-color: #216e39 !important;
+  border: 1px solid #1a5c2d !important;
+  box-shadow: 0 0 6px rgba(33, 110, 57, 0.3) !important;
+}
+
+
+.theme-light #upi-import-container {
+  color: #0f172a !important;
+}
+
+.theme-light #upi-import-container .bg-\[\#0d1117\] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+.theme-light #upi-import-container .bg-\[\#161b22\] {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+.theme-light #upi-import-container .text-\[\#f0f6fc\] {
+  color: #0f172a !important;
+}
+
+.theme-light #upi-import-container .text-\[\#c9d1d9\] {
+  color: #334155 !important;
+}
+
+.theme-light #upi-import-container .text-\[\#8b949e\] {
+  color: #64748b !important;
+}
+
+.theme-light #upi-import-container .border-\[\#30363d\],
+.theme-light #upi-import-container .border-\[\#21262d\] {
+  border-color: #e2e8f0 !important;
+}
+
+/* Custom Sleek Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--app-border-default);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--app-text-secondary);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

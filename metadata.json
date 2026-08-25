@@ -1,0 +1,6 @@
+{
+  "name": "MoneyMate",
+  "description": "Minimal, classy personal finance app with Direct UPI Share to Transaction parsing, Digital Gullak financial goals, and instant expense tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
