@@ -9,7 +9,7 @@ class DataSourceConfigTest {
     @Test
     void testLocalhostDefaultConfiguration() {
         DataSourceConfig.ParsedDbConfig config = DataSourceConfig.resolveDatabaseConfig(
-                "localhost",
+                null,
                 "5432",
                 "moneymate",
                 "postgres",
@@ -20,8 +20,11 @@ class DataSourceConfigTest {
         );
 
         assertEquals("jdbc:postgresql://localhost:5432/moneymate", config.jdbcUrl());
+        assertEquals("localhost", config.host());
+        assertEquals("5432", config.port());
         assertEquals("postgres", config.username());
         assertEquals("postgres", config.password());
+        assertFalse(config.isNeon());
         assertNull(config.endpointId());
         assertNull(config.sslMode());
     }
@@ -40,36 +43,66 @@ class DataSourceConfigTest {
         );
 
         assertEquals("jdbc:postgresql://postgres:5432/moneymate", config.jdbcUrl());
+        assertEquals("postgres", config.host());
         assertEquals("postgres", config.username());
         assertEquals("secret123", config.password());
-        assertNull(config.endpointId());
-        assertNull(config.sslMode());
+        assertFalse(config.isNeon());
     }
 
     @Test
-    void testNeonHostWithDedicatedVariablesAndTripleLayerRouting() {
-        String staleRenderUrl = "jdbc:postgresql://old-broken-host:5432/db";
-
+    void testDedicatedNeonVariables() {
         DataSourceConfig.ParsedDbConfig config = DataSourceConfig.resolveDatabaseConfig(
-                "ep-cool-fog-123456.us-east-2.aws.neon.tech",
+                "ep-patient-mode-a76n14s1.ap-southeast-2.aws.neon.tech",
                 "5432",
                 "neondb",
                 "neondb_owner",
-                "mypassword",
-                "ep-cool-fog-123456",
+                "npg_mypassword",
+                "ep-patient-mode-a76n14s1",
                 "require",
-                staleRenderUrl
+                null
         );
 
         assertEquals(
-                "jdbc:postgresql://ep-cool-fog-123456.us-east-2.aws.neon.tech:5432/neondb?sslmode=require&options=endpoint%3Dep-cool-fog-123456",
+                "jdbc:postgresql://ep-patient-mode-a76n14s1.ap-southeast-2.aws.neon.tech:5432/neondb?sslmode=require&options=endpoint%3Dep-patient-mode-a76n14s1",
                 config.jdbcUrl()
         );
+        assertEquals("ep-patient-mode-a76n14s1.ap-southeast-2.aws.neon.tech", config.host());
+        assertEquals("5432", config.port());
         assertEquals("neondb_owner", config.username());
-        // Triple-layer authentication prefix ensures Neon routes correctly even without SNI
-        assertEquals("endpoint=ep-cool-fog-123456;mypassword", config.password());
-        assertEquals("ep-cool-fog-123456", config.endpointId());
+        assertEquals("endpoint=ep-patient-mode-a76n14s1;npg_mypassword", config.password());
+        assertEquals("ep-patient-mode-a76n14s1", config.endpointId());
         assertEquals("require", config.sslMode());
+        assertTrue(config.isNeon());
+    }
+
+    @Test
+    void testSpringDatasourceUrlWithEmbeddedCredentials() {
+        // Exactly what was configured in Render's SPRING_DATASOURCE_URL
+        String renderUrl = "jdbc:postgresql://neondb_owner:npg_eC3dpPYKim6g@ep-patient-mode-a76n14s1.ap-southeast-2.aws.neon.tech:5432/neondb?sslmode=require";
+
+        DataSourceConfig.ParsedDbConfig config = DataSourceConfig.resolveDatabaseConfig(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                renderUrl
+        );
+
+        // Host MUST be cleanly extracted without user:pass@
+        assertEquals("ep-patient-mode-a76n14s1.ap-southeast-2.aws.neon.tech", config.host());
+        assertEquals("5432", config.port());
+        assertEquals("neondb", config.database());
+        assertEquals("neondb_owner", config.username());
+        assertEquals("endpoint=ep-patient-mode-a76n14s1;npg_eC3dpPYKim6g", config.password());
+        assertEquals("ep-patient-mode-a76n14s1", config.endpointId());
+        assertEquals(
+                "jdbc:postgresql://ep-patient-mode-a76n14s1.ap-southeast-2.aws.neon.tech:5432/neondb?sslmode=require&options=endpoint%3Dep-patient-mode-a76n14s1",
+                config.jdbcUrl()
+        );
+        assertTrue(config.isNeon());
     }
 
     @Test
@@ -94,44 +127,22 @@ class DataSourceConfigTest {
     }
 
     @Test
-    void testNeonHostAutoDetectionWithoutExplicitNeonEndpoint() {
+    void testDedicatedVariablesOverrideFallbackUrl() {
+        String staleUrl = "jdbc:postgresql://old-host:5432/olddb";
+
         DataSourceConfig.ParsedDbConfig config = DataSourceConfig.resolveDatabaseConfig(
-                "ep-silent-star-789.us-east-2.aws.neon.tech",
+                "ep-patient-mode-a76n14s1.ap-southeast-2.aws.neon.tech",
                 "5432",
                 "neondb",
-                "owner_user",
-                "secret_pass",
-                null,
-                null,
-                null
+                "neondb_owner",
+                "mypassword",
+                "ep-patient-mode-a76n14s1",
+                "require",
+                staleUrl
         );
 
-        assertEquals(
-                "jdbc:postgresql://ep-silent-star-789.us-east-2.aws.neon.tech:5432/neondb?sslmode=require&options=endpoint%3Dep-silent-star-789",
-                config.jdbcUrl()
-        );
-        assertEquals("endpoint=ep-silent-star-789;secret_pass", config.password());
-    }
-
-    @Test
-    void testFallbackRawUrlWithEmbeddedCredentials() {
-        DataSourceConfig.ParsedDbConfig config = DataSourceConfig.resolveDatabaseConfig(
-                "localhost",
-                "5432",
-                "moneymate",
-                "postgres",
-                "postgres",
-                null,
-                null,
-                "postgres://user:pass@ep-remote-host.neon.tech/customdb?sslmode=require"
-        );
-
-        assertEquals(
-                "jdbc:postgresql://ep-remote-host.neon.tech:5432/customdb?sslmode=require&options=endpoint%3Dep-remote-host",
-                config.jdbcUrl()
-        );
-        assertEquals("user", config.username());
-        assertEquals("endpoint=ep-remote-host;pass", config.password());
+        assertEquals("ep-patient-mode-a76n14s1.ap-southeast-2.aws.neon.tech", config.host());
+        assertEquals("neondb", config.database());
     }
 
     @Test

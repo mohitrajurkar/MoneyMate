@@ -19,20 +19,25 @@ import java.util.stream.Collectors;
 /**
  * Robust, Production-Grade DataSource Configuration for MoneyMate.
  *
- * Supports:
- * 1. Neon Serverless PostgreSQL with triple-layer routing:
+ * Precedence & Features:
+ * 1. Dedicated variables (DB_HOST, DB_PORT, DB_NAME, DB_USERNAME, DB_PASSWORD, NEON_ENDPOINT_ID, DB_SSLMODE)
+ *    are the primary configuration path on Render/Neon as well as Docker Compose and local dev.
+ * 2. If a connection URL is passed via SPRING_DATASOURCE_URL or DATABASE_URL:
+ *    - Automatically strips any embedded user:pass@ credentials so the JDBC driver doesn't misparse the host and fall back to localhost.
+ *    - Extracts username/password from the URI and applies them cleanly to HikariCP.
+ * 3. Triple-layer Neon routing:
  *    - Modern TLS SNI via PostgreSQL JDBC 42.7.3
  *    - Startup connection option parameter (`options=endpoint=<id>`)
  *    - Neon proxy authentication payload prefix (`endpoint=<id>;<password>`)
- * 2. Local Docker Compose and localhost development (zero SSL/routing overhead)
- * 3. Authoritative configuration precedence for dedicated DB_* environment variables.
+ *    - Automatic stripping of `-pooler` suffix
+ * 4. Localhost and Docker Compose compatibility with zero SSL/routing overhead.
  */
 @Configuration
 public class DataSourceConfig {
 
     private static final Logger log = LoggerFactory.getLogger(DataSourceConfig.class);
 
-    @Value("${DB_HOST:localhost}")
+    @Value("${DB_HOST:}")
     private String dbHost;
 
     @Value("${DB_PORT:5432}")
@@ -100,9 +105,17 @@ public class DataSourceConfig {
         config.setConnectionTimeout(20000);
         config.setLeakDetectionThreshold(60000);
 
-        log.info("Initialized PostgreSQL DataSource for host: {}, database: {}, SSL: {}, Neon Endpoint: {}",
-                parsed.host(), parsed.database(), parsed.sslMode() != null ? parsed.sslMode() : "disabled",
-                parsed.endpointId() != null ? parsed.endpointId() : "none");
+        // Safe diagnostic logging (NEVER logs passwords or JWT secrets)
+        log.info("================================================================================");
+        log.info("[Database Config] Selected Host:        {}", parsed.host());
+        log.info("[Database Config] Selected Port:        {}", parsed.port());
+        log.info("[Database Config] Selected Database:    {}", parsed.database());
+        log.info("[Database Config] Selected Username:    {}", parsed.username());
+        log.info("[Database Config] Neon Mode Detected:   {}", parsed.isNeon());
+        log.info("[Database Config] Neon Endpoint ID:     {}", parsed.endpointId() != null ? parsed.endpointId() : "none");
+        log.info("[Database Config] Effective SSL Mode:   {}", parsed.sslMode() != null ? parsed.sslMode() : "disabled");
+        log.info("[Database Config] Sanitized JDBC URL:   {}", sanitizeUrl(parsed.jdbcUrl()));
+        log.info("================================================================================");
 
         return new HikariDataSource(config);
     }
@@ -112,9 +125,11 @@ public class DataSourceConfig {
             String username,
             String password,
             String host,
+            String port,
             String database,
             String endpointId,
-            String sslMode
+            String sslMode,
+            boolean isNeon
     ) {}
 
     public static ParsedDbConfig resolveDatabaseConfig(
@@ -127,22 +142,19 @@ public class DataSourceConfig {
             String explicitSslMode,
             String fallbackRawUrl
     ) {
-        String trimmedHost = StringUtils.hasText(host) ? host.trim() : "localhost";
-        String trimmedPort = StringUtils.hasText(port) ? port.trim() : "5432";
-        String trimmedDb = StringUtils.hasText(database) ? database.trim() : "moneymate";
-        String username = StringUtils.hasText(user) ? user.trim() : "postgres";
-        String rawPassword = pass != null ? pass : "postgres";
-
+        boolean hasExplicitHost = StringUtils.hasText(host);
         boolean hasExplicitNeonEndpoint = StringUtils.hasText(explicitNeonEndpoint);
-        boolean isNeonHost = isNeon(trimmedHost);
-        boolean hasCustomHost = !trimmedHost.equalsIgnoreCase("localhost") && !trimmedHost.equalsIgnoreCase("127.0.0.1");
+        boolean hasFallbackUrl = StringUtils.hasText(fallbackRawUrl);
 
-        // PRIMARY PATH: Dedicated environment variables (custom host, Neon endpoint, or default local config)
-        if (hasCustomHost || hasExplicitNeonEndpoint || !StringUtils.hasText(fallbackRawUrl)) {
-            if (StringUtils.hasText(fallbackRawUrl)) {
-                log.info("Dedicated DB_* variables are active (DB_HOST={}); ignoring legacy SPRING_DATASOURCE_URL/DATABASE_URL", trimmedHost);
-            }
+        // PATH 1: Dedicated DB_HOST is explicitly provided
+        if (hasExplicitHost) {
+            String trimmedHost = host.trim();
+            String trimmedPort = StringUtils.hasText(port) ? port.trim() : "5432";
+            String trimmedDb = StringUtils.hasText(database) ? database.trim() : "moneymate";
+            String username = StringUtils.hasText(user) ? user.trim() : "postgres";
+            String rawPassword = pass != null ? pass : "postgres";
 
+            boolean isNeonHost = isNeon(trimmedHost);
             String endpoint = resolveEndpointId(trimmedHost, explicitNeonEndpoint);
             String effectiveSsl = (isNeonHost || StringUtils.hasText(explicitSslMode) || StringUtils.hasText(endpoint))
                     ? (StringUtils.hasText(explicitSslMode) ? explicitSslMode.trim() : "require")
@@ -152,11 +164,23 @@ public class DataSourceConfig {
             String finalPassword = formatNeonPassword(rawPassword, endpoint, isNeonHost);
 
             String jdbcUrl = "jdbc:postgresql://" + trimmedHost + ":" + trimmedPort + "/" + trimmedDb + query;
-            return new ParsedDbConfig(jdbcUrl, username, finalPassword, trimmedHost, trimmedDb, endpoint, effectiveSsl);
+            return new ParsedDbConfig(jdbcUrl, username, finalPassword, trimmedHost, trimmedPort, trimmedDb, endpoint, effectiveSsl, isNeonHost);
         }
 
-        // SECONDARY FALLBACK: Only used if DB_HOST was unset/localhost AND a fallback raw URL is explicitly present
-        return parseFallbackUrl(fallbackRawUrl, trimmedDb, username, rawPassword, explicitNeonEndpoint, explicitSslMode);
+        // PATH 2: Fallback URL (SPRING_DATASOURCE_URL / DATABASE_URL) is present
+        if (hasFallbackUrl) {
+            return parseFallbackUrl(fallbackRawUrl, database, user, pass, explicitNeonEndpoint, explicitSslMode);
+        }
+
+        // PATH 3: Localhost default (no env vars provided)
+        String trimmedHost = "localhost";
+        String trimmedPort = StringUtils.hasText(port) ? port.trim() : "5432";
+        String trimmedDb = StringUtils.hasText(database) ? database.trim() : "moneymate";
+        String username = StringUtils.hasText(user) ? user.trim() : "postgres";
+        String rawPassword = pass != null ? pass : "postgres";
+
+        String jdbcUrl = "jdbc:postgresql://" + trimmedHost + ":" + trimmedPort + "/" + trimmedDb;
+        return new ParsedDbConfig(jdbcUrl, username, rawPassword, trimmedHost, trimmedPort, trimmedDb, null, null, false);
     }
 
     private static ParsedDbConfig parseFallbackUrl(
@@ -167,57 +191,113 @@ public class DataSourceConfig {
             String explicitNeonEndpoint,
             String explicitSslMode
     ) {
-        String username = defaultUser;
-        String rawPassword = defaultPass;
+        String username = StringUtils.hasText(defaultUser) ? defaultUser.trim() : "postgres";
+        String rawPassword = defaultPass != null ? defaultPass : "postgres";
         String host = "localhost";
-        String db = defaultDb;
+        String port = "5432";
+        String db = StringUtils.hasText(defaultDb) ? defaultDb.trim() : "moneymate";
+        String existingQuery = null;
 
-        if (rawUrl.startsWith("postgres://") || rawUrl.startsWith("postgresql://")) {
-            try {
-                URI uri = new URI(rawUrl);
-                host = uri.getHost() != null ? uri.getHost() : host;
-                int uriPort = uri.getPort() > 0 ? uri.getPort() : 5432;
-                String uriPath = uri.getPath();
-                db = (uriPath != null && uriPath.length() > 1) ? uriPath.substring(1) : defaultDb;
+        String cleanUrl = rawUrl.trim();
 
-                if (uri.getUserInfo() != null) {
-                    String[] userParts = uri.getUserInfo().split(":", 2);
-                    username = userParts[0];
-                    if (userParts.length > 1) {
-                        rawPassword = userParts[1];
-                    }
-                }
+        // Convert jdbc:postgresql:// with embedded credentials or standard postgresql:// / postgres://
+        if (cleanUrl.startsWith("jdbc:postgresql://")) {
+            String withoutJdbc = cleanUrl.substring("jdbc:".length());
+            // Parse URI structure
+            ParsedUriInfo uriInfo = parsePostgresUri(withoutJdbc);
+            host = uriInfo.host != null ? uriInfo.host : host;
+            port = uriInfo.port != null ? uriInfo.port : port;
+            db = uriInfo.db != null ? uriInfo.db : db;
+            username = uriInfo.user != null ? uriInfo.user : username;
+            rawPassword = uriInfo.pass != null ? uriInfo.pass : rawPassword;
+            existingQuery = uriInfo.query;
+        } else if (cleanUrl.startsWith("postgres://") || cleanUrl.startsWith("postgresql://")) {
+            ParsedUriInfo uriInfo = parsePostgresUri(cleanUrl);
+            host = uriInfo.host != null ? uriInfo.host : host;
+            port = uriInfo.port != null ? uriInfo.port : port;
+            db = uriInfo.db != null ? uriInfo.db : db;
+            username = uriInfo.user != null ? uriInfo.user : username;
+            rawPassword = uriInfo.pass != null ? uriInfo.pass : rawPassword;
+            existingQuery = uriInfo.query;
+        }
 
-                boolean isNeonHost = isNeon(host);
-                String endpoint = resolveEndpointId(host, explicitNeonEndpoint);
-                String effectiveSsl = (isNeonHost || StringUtils.hasText(explicitSslMode) || StringUtils.hasText(endpoint))
-                        ? (StringUtils.hasText(explicitSslMode) ? explicitSslMode.trim() : "require")
-                        : null;
+        boolean isNeonHost = isNeon(host);
+        String endpoint = resolveEndpointId(host, explicitNeonEndpoint);
+        String effectiveSsl = (isNeonHost || StringUtils.hasText(explicitSslMode) || StringUtils.hasText(endpoint))
+                ? (StringUtils.hasText(explicitSslMode) ? explicitSslMode.trim() : "require")
+                : null;
 
-                String query = buildQueryParams(uri.getQuery(), endpoint, effectiveSsl, isNeonHost);
-                String finalPassword = formatNeonPassword(rawPassword, endpoint, isNeonHost);
+        String query = buildQueryParams(existingQuery, endpoint, effectiveSsl, isNeonHost);
+        String finalPassword = formatNeonPassword(rawPassword, endpoint, isNeonHost);
 
-                String jdbcUrl = "jdbc:postgresql://" + host + ":" + uriPort + "/" + db + query;
-                return new ParsedDbConfig(jdbcUrl, username, finalPassword, host, db, endpoint, effectiveSsl);
-            } catch (Exception e) {
-                log.warn("Failed to parse fallback URL as URI: {}", e.getMessage());
+        // Always generate a clean JDBC URL WITHOUT user:pass@ embedded in the host string
+        String jdbcUrl = "jdbc:postgresql://" + host + ":" + port + "/" + db + query;
+        return new ParsedDbConfig(jdbcUrl, username, finalPassword, host, port, db, endpoint, effectiveSsl, isNeonHost);
+    }
+
+    private static class ParsedUriInfo {
+        String user;
+        String pass;
+        String host;
+        String port = "5432";
+        String db;
+        String query;
+    }
+
+    private static ParsedUriInfo parsePostgresUri(String uriString) {
+        ParsedUriInfo info = new ParsedUriInfo();
+        try {
+            // Strip postgres://, postgresql://, or postgresql://
+            String s = uriString;
+            if (s.startsWith("postgresql://")) {
+                s = s.substring("postgresql://".length());
+            } else if (s.startsWith("postgres://")) {
+                s = s.substring("postgres://".length());
             }
+
+            // Check for query string
+            int questIdx = s.indexOf('?');
+            if (questIdx != -1) {
+                info.query = s.substring(questIdx + 1);
+                s = s.substring(0, questIdx);
+            }
+
+            // Check for user:pass@
+            int atIdx = s.indexOf('@');
+            if (atIdx != -1) {
+                String userPass = s.substring(0, atIdx);
+                s = s.substring(atIdx + 1);
+                if (userPass.contains(":")) {
+                    String[] up = userPass.split(":", 2);
+                    info.user = up[0];
+                    info.pass = up[1];
+                } else {
+                    info.user = userPass;
+                }
+            }
+
+            // Check for path /db
+            int slashIdx = s.indexOf('/');
+            if (slashIdx != -1) {
+                String path = s.substring(slashIdx + 1);
+                if (StringUtils.hasText(path)) {
+                    info.db = path;
+                }
+                s = s.substring(0, slashIdx);
+            }
+
+            // Now s is host:port or host
+            if (s.contains(":")) {
+                String[] hp = s.split(":", 2);
+                info.host = hp[0];
+                info.port = hp[1];
+            } else if (StringUtils.hasText(s)) {
+                info.host = s;
+            }
+        } catch (Exception e) {
+            log.warn("Could not parse URI '{}': {}", uriString, e.getMessage());
         }
-
-        if (rawUrl.startsWith("jdbc:postgresql://")) {
-            host = extractHostFromJdbcUrl(rawUrl);
-            boolean isNeonHost = isNeon(host);
-            String endpoint = resolveEndpointId(host, explicitNeonEndpoint);
-            String effectiveSsl = (isNeonHost || StringUtils.hasText(explicitSslMode) || StringUtils.hasText(endpoint))
-                    ? (StringUtils.hasText(explicitSslMode) ? explicitSslMode.trim() : "require")
-                    : null;
-
-            String url = appendNeonParamsToJdbcUrl(rawUrl, endpoint, effectiveSsl, isNeonHost);
-            String finalPassword = formatNeonPassword(rawPassword, endpoint, isNeonHost);
-            return new ParsedDbConfig(url, username, finalPassword, host, defaultDb, endpoint, effectiveSsl);
-        }
-
-        return new ParsedDbConfig(rawUrl, username, rawPassword, host, defaultDb, null, null);
+        return info;
     }
 
     public static boolean isNeon(String host) {
@@ -263,43 +343,6 @@ public class DataSourceConfig {
             }
         }
         return password;
-    }
-
-    private static String extractHostFromJdbcUrl(String jdbcUrl) {
-        try {
-            String withoutPrefix = jdbcUrl.substring("jdbc:postgresql://".length());
-            if (withoutPrefix.contains("@")) {
-                withoutPrefix = withoutPrefix.substring(withoutPrefix.indexOf("@") + 1);
-            }
-            int slashIdx = withoutPrefix.indexOf('/');
-            int questIdx = withoutPrefix.indexOf('?');
-            int endIdx = withoutPrefix.length();
-            if (slashIdx != -1) endIdx = Math.min(endIdx, slashIdx);
-            if (questIdx != -1) endIdx = Math.min(endIdx, questIdx);
-
-            String hostPort = withoutPrefix.substring(0, endIdx);
-            if (hostPort.contains(":")) {
-                return hostPort.split(":", 2)[0];
-            }
-            return hostPort;
-        } catch (Exception e) {
-            return "";
-        }
-    }
-
-    private static String appendNeonParamsToJdbcUrl(String jdbcUrl, String endpoint, String explicitSslMode, boolean isNeonHost) {
-        String result = jdbcUrl;
-
-        if ((isNeonHost || StringUtils.hasText(explicitSslMode)) && !result.contains("sslmode=")) {
-            String sslParam = "sslmode=" + (StringUtils.hasText(explicitSslMode) ? explicitSslMode : "require");
-            result += (result.contains("?") ? "&" : "?") + sslParam;
-        }
-
-        if (StringUtils.hasText(endpoint) && !result.contains("options=endpoint")) {
-            result += (result.contains("?") ? "&" : "?") + "options=endpoint%3D" + endpoint;
-        }
-
-        return result;
     }
 
     private static String buildQueryParams(String existingQuery, String endpoint, String explicitSslMode, boolean isNeonHost) {
