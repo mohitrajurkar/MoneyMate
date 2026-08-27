@@ -10,10 +10,7 @@ spring:
   application:
     name: moneymate-backend
   datasource:
-    # URL is flexibly resolved by DataSourceConfig supporting Neon SNI / options=endpoint, Render, and Local Docker
-    url: ${SPRING_DATASOURCE_URL:${DATABASE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:moneymate}}}
-    username: ${DB_USERNAME:${SPRING_DATASOURCE_USERNAME:postgres}}
-    password: ${DB_PASSWORD:${SPRING_DATASOURCE_PASSWORD:postgres}}
+    # Managed and instantiated exclusively by DataSourceConfig.java supporting Neon SNI, options=endpoint, Render, and Local Docker
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: ${DB_MAX_POOL_SIZE:10}
