@@ -82,25 +82,28 @@ docker compose down
 
 MoneyMate is designed to run seamlessly on cloud container platforms.
 
-#### 1. Database Setup:
-Create a Managed PostgreSQL 15+ instance on Render, Railway, Supabase, Neon, or AWS RDS.
-Note the connection string:
-```
-jdbc:postgresql://<host>:<port>/<dbname>?sslmode=require
-```
+#### 1. Database Setup (e.g. Neon, Supabase, Render, Railway, AWS RDS):
+Create a PostgreSQL instance (e.g., on [Neon](https://neon.tech)).
+Copy your connection credentials or endpoint hostname.
 
-#### 2. Backend Web Service:
-- **Build Type:** Dockerfile (Path: `backend/Dockerfile` with build context `backend/`)
-- **Environment Variables:**
-  - `SPRING_DATASOURCE_URL`: `jdbc:postgresql://<host>:<port>/<dbname>`
-  - `DB_USERNAME`: `<db_user>`
-  - `DB_PASSWORD`: `<db_password>`
-  - `JWT_SECRET`: `<generated_jwt_secret>`
-  - `CORS_ALLOWED_ORIGINS`: `https://your-frontend-domain.com`
-  - `GEMINI_API_KEY`: `<your_gemini_api_key>` (optional)
+#### 2. Backend Web Service on Render:
+- **Environment:** Docker
+- **Dockerfile Path:** `backend/Dockerfile`
+- **Docker Context Directory:** `backend`
+- **Environment Variables (Dedicated Neon Configuration - Recommended):**
+  - `DB_HOST`: `ep-xxxx-xxxx-123456.us-east-2.aws.neon.tech`
+  - `DB_PORT`: `5432`
+  - `DB_NAME`: `neondb`
+  - `DB_USERNAME`: `<your_neon_db_user>`
+  - `DB_PASSWORD`: `<your_neon_db_password>`
+  - `NEON_ENDPOINT_ID`: `ep-xxxx-xxxx-123456` (first part of your Neon hostname)
+  - `DB_SSLMODE`: `require`
+  - `JWT_SECRET`: `<generated_jwt_secret>` (minimum 32 characters, e.g. `openssl rand -base64 48`)
   - `HIBERNATE_DDL_AUTO`: `update`
+  - `GEMINI_API_KEY`: `<your_gemini_api_key>` (optional)
+  *(Note: You can safely delete or omit `SPRING_DATASOURCE_URL`. `CORS_ALLOWED_ORIGINS` can be added after the frontend is deployed).*
 - **Health Check Path:** `/api/health`
-- **Port:** `8080` (or platform `$PORT`)
+- **Port:** `8080` (Render dynamically assigns `$PORT` at runtime)
 
 #### 3. Frontend Web Service (or Static Site on Vercel / Netlify / Cloudflare Pages):
 - **Option 1 (Docker):** Deploy root `Dockerfile`.

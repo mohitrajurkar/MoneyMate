@@ -1,5 +1,6 @@
 server:
   port: ${PORT:8080}
+  address: 0.0.0.0
   shutdown: graceful
   compression:
     enabled: true
@@ -9,6 +10,7 @@ spring:
   application:
     name: moneymate-backend
   datasource:
+    # URL is flexibly resolved by DataSourceConfig supporting Neon SNI / options=endpoint, Render, and Local Docker
     url: ${SPRING_DATASOURCE_URL:${DATABASE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:moneymate}}}
     username: ${DB_USERNAME:${SPRING_DATASOURCE_USERNAME:postgres}}
     password: ${DB_PASSWORD:${SPRING_DATASOURCE_PASSWORD:postgres}}
@@ -27,7 +29,6 @@ spring:
     open-in-view: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: false
 
 app:
