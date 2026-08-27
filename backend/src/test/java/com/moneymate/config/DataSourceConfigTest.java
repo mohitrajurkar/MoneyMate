@@ -22,6 +22,8 @@ class DataSourceConfigTest {
         assertEquals("jdbc:postgresql://localhost:5432/moneymate", config.jdbcUrl());
         assertEquals("postgres", config.username());
         assertEquals("postgres", config.password());
+        assertNull(config.endpointId());
+        assertNull(config.sslMode());
     }
 
     @Test
@@ -40,11 +42,12 @@ class DataSourceConfigTest {
         assertEquals("jdbc:postgresql://postgres:5432/moneymate", config.jdbcUrl());
         assertEquals("postgres", config.username());
         assertEquals("secret123", config.password());
+        assertNull(config.endpointId());
+        assertNull(config.sslMode());
     }
 
     @Test
-    void testNeonHostWithDedicatedVariablesOverridesStaleSpringDatasourceUrl() {
-        // Stale URL from previous deployment attempt on Render
+    void testNeonHostWithDedicatedVariablesAndTripleLayerRouting() {
         String staleRenderUrl = "jdbc:postgresql://old-broken-host:5432/db";
 
         DataSourceConfig.ParsedDbConfig config = DataSourceConfig.resolveDatabaseConfig(
@@ -55,7 +58,7 @@ class DataSourceConfigTest {
                 "mypassword",
                 "ep-cool-fog-123456",
                 "require",
-                staleRenderUrl // should be ignored in favor of DB_* variables
+                staleRenderUrl
         );
 
         assertEquals(
@@ -63,7 +66,31 @@ class DataSourceConfigTest {
                 config.jdbcUrl()
         );
         assertEquals("neondb_owner", config.username());
-        assertEquals("mypassword", config.password());
+        // Triple-layer authentication prefix ensures Neon routes correctly even without SNI
+        assertEquals("endpoint=ep-cool-fog-123456;mypassword", config.password());
+        assertEquals("ep-cool-fog-123456", config.endpointId());
+        assertEquals("require", config.sslMode());
+    }
+
+    @Test
+    void testNeonPoolerHostStripsPoolerSuffix() {
+        DataSourceConfig.ParsedDbConfig config = DataSourceConfig.resolveDatabaseConfig(
+                "ep-cool-fog-123456-pooler.us-east-2.aws.neon.tech",
+                "5432",
+                "neondb",
+                "neondb_owner",
+                "mypassword",
+                null,
+                null,
+                null
+        );
+
+        assertEquals(
+                "jdbc:postgresql://ep-cool-fog-123456-pooler.us-east-2.aws.neon.tech:5432/neondb?sslmode=require&options=endpoint%3Dep-cool-fog-123456",
+                config.jdbcUrl()
+        );
+        assertEquals("endpoint=ep-cool-fog-123456;mypassword", config.password());
+        assertEquals("ep-cool-fog-123456", config.endpointId());
     }
 
     @Test
@@ -74,8 +101,8 @@ class DataSourceConfigTest {
                 "neondb",
                 "owner_user",
                 "secret_pass",
-                null, // will be auto-extracted from host
-                null, // will default to require for Neon
+                null,
+                null,
                 null
         );
 
@@ -83,10 +110,11 @@ class DataSourceConfigTest {
                 "jdbc:postgresql://ep-silent-star-789.us-east-2.aws.neon.tech:5432/neondb?sslmode=require&options=endpoint%3Dep-silent-star-789",
                 config.jdbcUrl()
         );
+        assertEquals("endpoint=ep-silent-star-789;secret_pass", config.password());
     }
 
     @Test
-    void testFallbackRawUrlWhenNoDedicatedHost() {
+    void testFallbackRawUrlWithEmbeddedCredentials() {
         DataSourceConfig.ParsedDbConfig config = DataSourceConfig.resolveDatabaseConfig(
                 "localhost",
                 "5432",
@@ -103,7 +131,7 @@ class DataSourceConfigTest {
                 config.jdbcUrl()
         );
         assertEquals("user", config.username());
-        assertEquals("pass", config.password());
+        assertEquals("endpoint=ep-remote-host;pass", config.password());
     }
 
     @Test
