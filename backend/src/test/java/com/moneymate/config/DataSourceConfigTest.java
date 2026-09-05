@@ -106,6 +106,54 @@ class DataSourceConfigTest {
     }
 
     @Test
+    void testSupabaseJdbcConnectionStringWithQueryParams() {
+        // Supabase standard JDBC connection format with query params and percent-encoded password
+        String supabaseUrl = "jdbc:postgresql://db.zyvzdxxahnlcjoyvzpme.supabase.co:5432/postgres?user=postgres&password=my%20Secret%23Pass%21";
+
+        DataSourceConfig.ParsedDbConfig config = DataSourceConfig.resolveDatabaseConfig(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                supabaseUrl
+        );
+
+        assertEquals("db.zyvzdxxahnlcjoyvzpme.supabase.co", config.host());
+        assertEquals("5432", config.port());
+        assertEquals("postgres", config.database());
+        assertEquals("postgres", config.username());
+        assertEquals("my Secret#Pass!", config.password());
+        assertEquals("require", config.sslMode());
+        assertEquals("jdbc:postgresql://db.zyvzdxxahnlcjoyvzpme.supabase.co:5432/postgres?sslmode=require", config.jdbcUrl());
+        assertFalse(config.isNeon());
+    }
+
+    @Test
+    void testSupabaseDedicatedVariables() {
+        DataSourceConfig.ParsedDbConfig config = DataSourceConfig.resolveDatabaseConfig(
+                "db.zyvzdxxahnlcjoyvzpme.supabase.co",
+                "5432",
+                "postgres",
+                "postgres",
+                "securePass123",
+                null,
+                null,
+                null
+        );
+
+        assertEquals("db.zyvzdxxahnlcjoyvzpme.supabase.co", config.host());
+        assertEquals("5432", config.port());
+        assertEquals("postgres", config.database());
+        assertEquals("postgres", config.username());
+        assertEquals("securePass123", config.password());
+        assertEquals("require", config.sslMode());
+        assertEquals("jdbc:postgresql://db.zyvzdxxahnlcjoyvzpme.supabase.co:5432/postgres?sslmode=require", config.jdbcUrl());
+    }
+
+    @Test
     void testNeonPoolerHostStripsPoolerSuffix() {
         DataSourceConfig.ParsedDbConfig config = DataSourceConfig.resolveDatabaseConfig(
                 "ep-cool-fog-123456-pooler.us-east-2.aws.neon.tech",

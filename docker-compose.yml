@@ -36,13 +36,14 @@ services:
     restart: unless-stopped
     environment:
       PORT: 8080
-      DB_HOST: postgres
+      DB_HOST: ${DB_HOST-postgres}
       DB_PORT: 5432
       DB_NAME: ${DB_NAME:-moneymate}
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       HIBERNATE_DDL_AUTO: ${HIBERNATE_DDL_AUTO:-update}
       DATABASE_URL: ${DATABASE_URL:-}
+      DB_AUTO_CREATE: ${DB_AUTO_CREATE:-false}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
@@ -60,7 +61,7 @@ services:
   # ----------------------------------------------------------------------------
   frontend:
     build:
-      context: .
+      context: ./frontend
       dockerfile: Dockerfile
     container_name: moneymate-frontend
     restart: unless-stopped
