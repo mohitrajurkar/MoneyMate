@@ -156,7 +156,16 @@ export default function App() {
           apiService.logout();
           setUser(null);
         });
+    } else {
+      setUser(null);
     }
+
+    const handleAuthExpired = () => {
+      setUser(null);
+    };
+
+    window.addEventListener('moneymate:auth-expired', handleAuthExpired);
+    return () => window.removeEventListener('moneymate:auth-expired', handleAuthExpired);
   }, []);
 
   // Auth Handlers

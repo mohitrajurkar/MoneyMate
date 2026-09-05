@@ -68,10 +68,13 @@ class ApiService {
       headers,
     });
 
-    if (response.status === 401) {
-      // If unauthorized, clear token and active user
-      this.setToken(null);
-      this.setActiveUser(null);
+    if (response.status === 401 || response.status === 403) {
+      // If unauthorized or forbidden, clear token and notify session invalidation
+      if (!endpoint.includes('/api/auth/login') && !endpoint.includes('/api/auth/register')) {
+        this.setToken(null);
+        this.setActiveUser(null);
+        window.dispatchEvent(new CustomEvent('moneymate:auth-expired'));
+      }
     }
 
     if (!response.ok) {

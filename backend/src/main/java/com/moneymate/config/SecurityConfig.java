@@ -3,10 +3,12 @@ package com.moneymate.config;
 import com.moneymate.security.CustomUserDetailsService;
 import com.moneymate.security.JwtAuthenticationFilter;
 import com.moneymate.security.RateLimitingFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.Customizer;
@@ -83,6 +85,18 @@ public class SecurityConfig {
                                 .includeSubDomains(true)
                                 .maxAgeInSeconds(31536000)
                         )
+                )
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            response.getWriter().write("{\"error\":\"Unauthorized\",\"message\":\"Please log in to continue.\"}");
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            response.getWriter().write("{\"error\":\"Forbidden\",\"message\":\"Access denied.\"}");
+                        })
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
